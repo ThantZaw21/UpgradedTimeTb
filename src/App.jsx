@@ -160,8 +160,8 @@ const App = () => {
               <img src="/Meiktila2.png" alt="Logo" className="h-12 lg:h-16 w-auto" />
             </div>
             <div>
-              <h1 className="text-xl lg:text-3xl font-black uppercase tracking-tighter">UCS Meikhtila</h1>
-              <p className="text-[10px] opacity-40 uppercase mt-1 tracking-[0.3em]">Smart Timetable • IV.BE(C.S)</p>
+              <h1 className="text-xl lg:text-3xl font-black uppercase tracking-tighter">University Of Computer Studies Meikhtila</h1>
+              <p className="text-[10px] opacity-40 uppercase mt-1 tracking-[0.3em]">5th-yr TimeTable</p>
             </div>
           </div>
           <div className="bg-black/40 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
