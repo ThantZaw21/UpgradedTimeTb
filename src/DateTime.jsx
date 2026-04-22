@@ -4,27 +4,34 @@ function DateTime() {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    // Update every second
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-
-    // Cleanup on unmount
+    const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Format time: 12-hour, minutes, and seconds with "s"
+  // Get day names and month names
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const dayName = days[time.getDay()];
+  const monthName = months[time.getMonth()];
+  const dayNumber = time.getDate();
+  const year = time.getFullYear();
+
+  // Format time: 12-hour with minutes and seconds
   const hoursMinutes = time.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    second: "2-digit",
     hour12: true,
   });
 
-  const seconds = String(time.getSeconds()); // always 2 digits
-
   return (
-    <div className=" text-sm text-white/70">
-      {hoursMinutes} {seconds}s
+    <div className="text-white/80 text-sm text-center">
+      <div>{dayName}, {monthName} {dayNumber}, {year}</div>
+      <div>{hoursMinutes}</div>
     </div>
   );
 }
