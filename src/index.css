@@ -47,3 +47,21 @@
   transform: scaleX(1);
   transform-origin: bottom left;
 }
+
+@keyframes reveal-bounce {
+  0% { 
+    transform: translateY(150%) scaleY(2); 
+    opacity: 0; 
+    filter: blur(10px); 
+  }
+  60% { 
+    transform: translateY(-20%) scaleY(0.8); 
+    opacity: 1; 
+    filter: blur(0px); 
+  }
+  100% { 
+    transform: translateY(0) scaleY(1); 
+    opacity: 1; 
+  }
+}
+
