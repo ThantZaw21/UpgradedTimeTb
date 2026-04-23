@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 
 // --- INTEGRATED DYNAMIC DATE TIME (12 HOUR FORMAT) ---
 const DateTime = ({ isDark }) => {
@@ -234,6 +235,7 @@ const App = () => {
         @keyframes cardEntrance { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .animate-card-entrance { animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
+      <Analytics />
     </div>
   );
 };
