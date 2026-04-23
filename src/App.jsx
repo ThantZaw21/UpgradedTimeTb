@@ -42,8 +42,9 @@ const App = () => {
   const timeSlots = [[510, 570], [575, 635], [640, 700], [700, 760], [760, 820], [825, 885], [890, 950]];
 
   const [loading, setLoading] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0); // Added for professional progress feel
+  const [loadProgress, setLoadProgress] = useState(0); 
   const [showContent, setShowContent] = useState(false);
+  const [showAutoPopup, setShowAutoPopup] = useState(false);
   const [activeSlot, setActiveSlot] = useState(null);
   const [today, setToday] = useState("");
   const [selectedDay, setSelectedDay] = useState(""); 
@@ -53,80 +54,81 @@ const App = () => {
 
   useEffect(() => {
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const initialDay = days[new Date().getDay()];
+    const now = new Date();
+    const initialDay = days[now.getDay()];
     setToday(initialDay);
     setSelectedDay(initialDay === "Sunday" || initialDay === "Saturday" ? "Monday" : initialDay);
     
-    // Professional loading simulation
+    // Progress simulation
     const progressInterval = setInterval(() => {
-        setLoadProgress(prev => {
-            if (prev >= 100) {
-                clearInterval(progressInterval);
-                return 100;
-            }
-            return prev + 1;
-        });
+        setLoadProgress(prev => (prev >= 100 ? 100 : prev + 1));
     }, 30);
 
-    const timer = setTimeout(() => {
-        setLoading(false);
-        setTimeout(() => setShowContent(true), 100);
+    // Initial slot check
+    const checkSlot = () => {
+      const d = new Date();
+      const mins = d.getHours() * 60 + d.getMinutes();
+      const curDay = days[d.getDay()];
+      const idx = timeSlots.findIndex(s => mins >= s[0] && mins < s[1]);
+      return idx !== -1 && scheduleData[curDay] ? idx : null;
+    };
+    
+    const initialSlot = checkSlot();
+    setActiveSlot(initialSlot);
+
+    // Sequence Control
+    const entranceTimer = setTimeout(() => {
+        setLoading(false); // 1. Kill Preloader
+        
+        setTimeout(() => {
+            setShowContent(true); // 2. Show Main UI
+            
+            // 3. Trigger Popup strictly 2s AFTER main UI is up
+            if (initialSlot !== null) {
+              setTimeout(() => {
+                setShowAutoPopup(true);
+                setTimeout(() => setShowAutoPopup(false), 6000);
+              }, 2000);
+            }
+        }, 100);
     }, 4000);
     
-    const update = () => {
-      const now = new Date();
-      const currentDay = days[now.getDay()];
-      setToday(currentDay);
-      const mins = now.getHours() * 60 + now.getMinutes();
-      const index = timeSlots.findIndex(s => mins >= s[0] && mins < s[1]);
-      setActiveSlot(index !== -1 && scheduleData[currentDay] ? index : null);
+    const updateInterval = setInterval(() => {
+      setActiveSlot(checkSlot());
+    }, 10000);
+
+    return () => { 
+      clearTimeout(entranceTimer); 
+      clearInterval(updateInterval); 
+      clearInterval(progressInterval); 
     };
-    update();
-    const interval = setInterval(update, 5000);
-    return () => { clearTimeout(timer); clearInterval(interval); clearInterval(progressInterval); };
-  }, []);
+  }, []); 
 
   const isDark = theme === "dark";
   const activeTheme = isDark ? {
-    bg: "bg-[#050a18]", card: "bg-[#0f172a]", border: "border-white/10", text: "text-slate-100", subtext: "text-slate-400", nav: "bg-[#050a18]/95"
+    bg: "bg-[#050a18]", card: "bg-[#0f172a]", border: "border-white/10", text: "text-slate-100", nav: "bg-[#050a18]/95"
   } : {
-    bg: "bg-[#f1f5f9]", card: "bg-white", border: "border-slate-300", text: "text-slate-900", subtext: "text-slate-500", nav: "bg-[#f1f5f9]/95"
+    bg: "bg-[#f1f5f9]", card: "bg-white", border: "border-slate-300", text: "text-slate-900", nav: "bg-[#f1f5f9]/95"
   };
 
+  // Preloader View
   if (loading) return (
     <div className="fixed inset-0 z-[9999] bg-[#050a18] flex flex-col items-center justify-center overflow-hidden font-sans">
       <div className="relative flex items-center justify-center">
-        {/* Animated Outer Ring */}
         <svg className="w-48 h-48 transform -rotate-90">
+          <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-blue-600/10" />
           <circle
-            cx="96"
-            cy="96"
-            r="80"
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="transparent"
-            className="text-blue-600/10"
-          />
-          <circle
-            cx="96"
-            cy="96"
-            r="80"
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="transparent"
+            cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="2" fill="transparent"
             strokeDasharray={502.4}
             strokeDashoffset={502.4 - (502.4 * loadProgress) / 100}
             className="text-blue-600 transition-all duration-300 ease-out"
           />
         </svg>
-        
-        {/* Center Logo/Text */}
         <div className="absolute flex flex-col items-center">
             <span className="text-white text-4xl font-[1000] italic tracking-tighter animate-pulse">UCSM</span>
             <span className="text-blue-600 font-mono text-[10px] tracking-[0.3em] font-bold">{loadProgress}%</span>
         </div>
       </div>
-
       <div className="mt-12 flex flex-col items-center gap-2">
         <div className="flex gap-1">
             <div className="w-1 h-1 bg-blue-600 animate-bounce" style={{animationDelay: '0s'}}></div>
@@ -141,7 +143,27 @@ const App = () => {
   return (
     <div className={`min-h-screen transition-colors duration-700 ${activeTheme.bg} ${activeTheme.text}`}>
       
-      {/* 1. TOP NAV - DAYS ONLY */}
+      {/* POPUP: Strict condition to only show if content is ready AND timer finished */}
+      {showContent && showAutoPopup && activeSlot !== null && (
+        <div className="fixed top-24 left-6 right-6 md:left-auto md:right-10 md:w-96 z-[5000] animate-card-entrance">
+          <div className={`p-6 rounded-[2.5rem] border shadow-2xl backdrop-blur-2xl ${isDark ? 'bg-[#0f172a]/90 border-blue-500/30' : 'bg-white/90 border-blue-200'}`}>
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-blue-600/20">📡</div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-4 border-[#0f172a] animate-ping" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] mb-1">Now Learning</p>
+                <h5 className={`font-black italic uppercase text-lg truncate ${activeTheme.text}`}>{scheduleData[today][activeSlot]}</h5>
+                <p className="text-slate-500 text-[11px] font-bold uppercase truncate">{courseInfo[scheduleData[today][activeSlot]]?.teacher}</p>
+              </div>
+              <button onClick={() => setShowAutoPopup(false)} className="text-slate-400 p-2">✕</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOP NAV */}
       <nav className={`fixed top-0 left-0 right-0 z-[1000] border-b backdrop-blur-xl ${activeTheme.nav} ${activeTheme.border}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center">
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-2 w-full">
@@ -154,21 +176,17 @@ const App = () => {
         </div>
       </nav>
 
-      {/* 2. BOTTOM NAV - INTEGRATED THEME SWITCH */}
+      {/* BOTTOM NAV */}
       <nav className={`fixed bottom-0 left-0 right-0 z-[1000] p-6 border-t backdrop-blur-2xl ${activeTheme.nav} ${activeTheme.border}`}>
         <div className="max-w-xl mx-auto flex gap-3">
           <button onClick={() => setCurrentTab("schedule")} className={`flex-[2] py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${currentTab === "schedule" ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-500 hover:bg-blue-600/5'}`}>📅 Schedule</button>
           <button onClick={() => setCurrentTab("faculty")} className={`flex-[2] py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${currentTab === "faculty" ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-500 hover:bg-blue-600/5'}`}>👨‍🏫 Faculty</button>
-          
-          <button onClick={() => setTheme(isDark ? "light" : "dark")} className={`flex-1 flex items-center justify-center rounded-2xl border transition-all duration-500 text-xl shadow-inner ${activeTheme.card} ${activeTheme.border} active:scale-90`}>
-            {isDark ? "🌑" : "☀️"}
-          </button>
-
+          <button onClick={() => setTheme(isDark ? "light" : "dark")} className={`flex-1 flex items-center justify-center rounded-2xl border transition-all duration-500 text-xl shadow-inner ${activeTheme.card} ${activeTheme.border} active:scale-90`}>{isDark ? "🌑" : "☀️"}</button>
           <button onClick={() => setIsInfoOpen(true)} className={`w-14 py-4 rounded-2xl text-lg flex items-center justify-center ${activeTheme.card} border ${activeTheme.border} text-blue-600 hover:border-blue-600/50 transition-all`}>ℹ️</button>
         </div>
       </nav>
 
-      {/* 3. SCROLLABLE CONTENT */}
+      {/* MAIN CONTENT */}
       <div className={`transition-all duration-1000 ${showContent ? 'animate-pop-up-entry' : 'opacity-0'}`}>
         <main className="max-w-7xl mx-auto pt-32 pb-44 px-6">
           <header className="mb-16">
@@ -197,7 +215,7 @@ const App = () => {
                       <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black italic text-xl">{data.teacher.charAt(0)}</div>
                       <h3 className="text-lg font-black italic uppercase tracking-tighter">{data.teacher}</h3>
                     </div>
-                    <p className="font-black italic text-lg uppercase tracking-tight pt-4 border-t border-white/5">{course}</p>
+                    <p className={`font-black italic text-lg uppercase tracking-tight pt-4 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>{course}</p>
                   </div>
                 ))}
               </div>
@@ -224,13 +242,10 @@ const App = () => {
         body { font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; margin: 0; }
         h1, h2, h3, h4, button { font-family: 'Plus Jakarta Sans', sans-serif; font-style: italic; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
         @keyframes popUpEntry { 0% { transform: scale(0.95) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
         .animate-pop-up-entry { animation: popUpEntry 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
         @keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
         .animate-page-fade { animation: pageFade 0.4s ease-out forwards; }
-
         @keyframes cardEntrance { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .animate-card-entrance { animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
