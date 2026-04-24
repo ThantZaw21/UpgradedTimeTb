@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -8,12 +8,15 @@ const firebaseConfig = {
   projectId: "timetb-b1698",
   storageBucket: "timetb-b1698.firebasestorage.app",
   messagingSenderId: "581665773176",
-  appId: "1:581665773176:web:ab4560b7ca43e9b02dbf8d",
-  measurementId: "G-LGBZR69JBX"
+  appId: "1:581665773176:web:c000e08b0cbbe54f2dbf8d",
+  measurementId: "G-S2QKNGN60J",
+  // CRITICAL: The URL must include 'asia-southeast1' to match your database location
+  databaseURL: "https://timetb-b1698-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore and export it
-export const db = getFirestore(app);
+// Initialize Realtime Database and get a reference to the service
+// We export 'db' so it can be imported in App.jsx
+export const db = getDatabase(app);
