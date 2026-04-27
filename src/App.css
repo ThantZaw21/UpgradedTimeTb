@@ -85,3 +85,6 @@
   transform-origin: bottom left;
 }
 
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
