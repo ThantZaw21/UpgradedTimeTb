@@ -2,8 +2,58 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ref, onValue, set, get } from "firebase/database"; 
 import { db } from "./firebase"; 
 import { motion, AnimatePresence } from "framer-motion";
+import { Clock, MapPin, Bell, ChevronRight, User, Calendar, Layout } from 'lucide-react';
+import { Preferences } from "@capacitor/preferences";
+
+// Memoized to prevent refreshing every time the clock ticks
+const MobileWidgets = React.memo(({ isDark, currentSub, nextSub, timeRemaining }) => {
+  return (
+    <div className="grid grid-cols-2 gap-4 mb-10 lg:hidden">
+      {/* Current Class Widget */}
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className={`p-6 rounded-[32px] border flex flex-col justify-between h-40 ${
+          isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#7C74EE]/10 shadow-sm'
+        }`}
+      >
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#B4F02D] animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Now</span>
+          </div>
+          <h3 className="text-lg font-black italic tracking-tighter leading-tight line-clamp-2">
+            {currentSub || "Free Time"}
+          </h3>
+        </div>
+        <p className="text-[11px] font-bold text-[#7C74EE] uppercase tracking-tighter">{timeRemaining}</p>
+      </motion.div>
+
+      {/* Next Class Widget */}
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="p-6 rounded-[32px] bg-[#7C74EE] text-white shadow-lg shadow-[#7C74EE]/20 flex flex-col justify-between h-40"
+      >
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Up Next</span>
+          <h3 className="text-lg font-black italic tracking-tighter leading-tight line-clamp-2 mt-3">
+            {nextSub || "End of Day"}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1 opacity-80">
+          <span className="text-[10px] font-bold uppercase tracking-tighter">View Info</span>
+          <ChevronRight size={14} />
+        </div>
+      </motion.div>
+    </div>
+  );
+});
 
 const App = () => {
+
+  
   // --- 1. CORE DATA ---
   const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   
@@ -147,8 +197,63 @@ const App = () => {
   const isDark = theme === "dark";
   const groupedFaculty = getGroupedFaculty();
 
+  // 1. Logic to get the data
+const todaySchedule = scheduleData[realDay] || [];
+const currentSub = activeSlot !== -1 ? todaySchedule[activeSlot] : null;
+const nextSub = activeSlot !== -1 && activeSlot < todaySchedule.length - 1 ? todaySchedule[activeSlot + 1] : null;
+
+const getTimeRemaining = () => {
+  if (activeSlot === -1) return "System Standby";
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const endMins = timeSlots[activeSlot][1];
+  const diff = endMins - mins;
+  return diff > 0 ? `${diff} mins left` : "Wrapping up";
+};
+
+// 2. Optimized Timer (Crucial for performance)
+useEffect(() => {
+  const timer = setInterval(() => {
+    const now = new Date();
+    setTime(now); // Clock updates every second
+    
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const slot = timeSlots.findIndex(s => mins >= s[0] && mins < s[1]);
+    
+    // ONLY update state if the class slot actually changes
+    // This stops the widget from refreshing every 1s
+    setActiveSlot(prev => (prev !== slot ? slot : prev));
+  }, 1000);
+  return () => clearInterval(timer);
+}, []);
+
+useEffect(() => {
+  const syncWidgetPayload = async () => {
+    const widgetPayload = {
+      day: realDay,
+      currentSub: currentSub || "Free Time",
+      nextSub: nextSub || "End of Day",
+      status: activeSlot === -1 ? "No active class" : timeLabels[activeSlot],
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await Preferences.set({
+        key: "home_widget_payload",
+        value: JSON.stringify(widgetPayload)
+      });
+    } catch (error) {
+      // Keep app UI running even if native widget storage fails.
+      console.error("Failed to sync home widget payload", error);
+    }
+  };
+
+  syncWidgetPayload();
+}, [realDay, currentSub, nextSub, activeSlot]);
+
   return (
     <>
+    
       {/* PRELOADER */}
 {/* PRELOADER */}
       <AnimatePresence>

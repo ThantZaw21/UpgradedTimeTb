@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">timetable</string>
+    <string name="title_activity_main">timetable</string>
+    <string name="package_name">com.timetable.app</string>
+    <string name="custom_url_scheme">com.timetable.app</string>
+    <string name="widget_description">Shows current and next timetable class.</string>
+</resources>
